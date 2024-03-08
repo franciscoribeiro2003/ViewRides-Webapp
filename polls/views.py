@@ -1,5 +1,5 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404
+from django.http import FileResponse, HttpResponse
 import os
 from django.conf import settings
 
@@ -26,6 +26,15 @@ def upload_gpx(request):
     return render(request, 'upload_gpx.html', {'form': form})
 
 # display all the data from the database
-def display_gpx(request):
-    data = GPXData.objects.all()
-    return render(request, 'display_gpx.html', {'data': data})
+def display_gpx_data(request):
+    gpx_data_entries = GPXData.objects.all()
+    return render(request, 'display_gpx.html', {'gpx_data_entries': gpx_data_entries})
+
+def serve_gpx_file(request, id):
+    gpx_data = get_object_or_404(GPXData, id=id)
+    gpx_file = gpx_data.gpx_file
+    return FileResponse(gpx_file, as_attachment=True)
+
+def display_gpx_data_detail(request, id):
+    gpx_data = get_object_or_404(GPXData, id=id)
+    return render(request, 'gpx_data_detail.html', {'gpx_data': gpx_data})
