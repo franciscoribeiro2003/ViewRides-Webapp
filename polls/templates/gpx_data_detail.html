@@ -17,22 +17,16 @@
     <div id="map"></div>
 
     <script>
-        var map = L.map('map').setView([41.1579, -8.6291], 14);
+        var map = L.map('map');
         map.getPane('tilePane').style.opacity = 0.4;
-
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+        var gpx;
 
         async function fetchGpx() {
             try {
                 const response = await fetch('/map/gpx_data/{{ gpx_data.id }}/file/');
-                const gpx = await response.text();
+                gpx = await response.text();
+
+                parseGpxAndSetMap(gpx);
 
                 new L.GPX(gpx, {
                     async: true
@@ -57,6 +51,61 @@
                 console.error(error);
             }
         }
+        function parseGpxAndSetMap(gpxData) {
+            // Parse GPX data and extract coordinates
+            var parser = new DOMParser();
+            var xmlDoc = parser.parseFromString(gpxData, 'text/xml');
+            var trkpts = xmlDoc.getElementsByTagName('trkpt');
+
+            // Initialize variables for minimum and maximum latitude and longitude values
+            var minLat, maxLat, minLon, maxLon;
+
+            // Iterate through all trkpt elements to find minimum and maximum latitude and longitude
+            for (var i = 0; i < trkpts.length; i++) {
+                var lat = parseFloat(trkpts[i].getAttribute('lat'));
+                var lon = parseFloat(trkpts[i].getAttribute('lon'));
+
+                // Update minLat, maxLat, minLon, maxLon
+                if (i === 0) {
+                    minLat = maxLat = lat;
+                    minLon = maxLon = lon;
+                } else {
+                    minLat = Math.min(minLat, lat);
+                    maxLat = Math.max(maxLat, lat);
+                    minLon = Math.min(minLon, lon);
+                    maxLon = Math.max(maxLon, lon);
+                }
+            }
+
+            // Calculate the center coordinates
+            var centerLat = (minLat + maxLat) / 2;
+            var centerLon = (minLon + maxLon) / 2;
+
+            // Set the map view to focus on the center coordinates
+            map.setView([centerLat, centerLon]);
+
+            // Determine the zoom level to fit the entire route within the map bounds
+            var bounds = L.latLngBounds([[minLat, minLon], [maxLat, maxLon]]);
+            map.fitBounds(bounds);
+
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            // Add GPX data to the map
+            new L.GPX(gpxData, {
+                async: true
+            }).on('loaded', function(e) {
+                var gpxLayer = e.target;
+                var track = gpxLayer.getLayers()[0];
+
+                track.eachLayer(function(segment) {
+                    // Process each segment of the GPX track, if needed
+                });
+            }).addTo(map);
+        }
+
 
         fetchGpx();
 
