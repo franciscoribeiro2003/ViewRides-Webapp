@@ -13,13 +13,64 @@
     </style>
 </head>
 <body>
-    <h1>GPX Data Detail - {{ gpx_data.id }}</h1>
+    <section class="bg-gray-50">
+        <div class="mx-auto max-w-screen-xl px-4 py-32 lg:flex lg:h-screen lg:items-center">
+        <div class="mx-auto max-w-xl text-center">
+        <h1 class="text-3xl font-extrabold sm:text-5xl">
+            <strong class="font-extrabold text-indigo-700 sm:block">
+            <span id="_text_content">GPX Data Detail - {{ gpx_data.id }}</span>
+            </strong>
+            </h1>
+            <p class="mt-3 text-lg text-gray-500 sm:mt-4">
+            <span id="_text_content">This page displays the details of the GPX data with ID {{ gpx_data.id }}.</span>
+            </p>
+        </div>
+        </div>
+    </section>
     <div id="map"></div>
+    <div>
+        <h2>Display Options</h2>
+        <button id="speedButton">Display Speed</button>
+        <button id="gradientButton">Display Gradient</button>
+        <button id="elevationButton">Display Elevation</button>
+        <button id="clearButton">Clear Display</button>
+    </div>
 
     <script>
         var map = L.map('map');
         map.getPane('tilePane').style.opacity = 0.4;
         var gpx;
+        var speedDisplayed = false;
+        var gradientDisplayed = false;
+        var elevationDisplayed = false;
+
+        document.getElementById('speedButton').addEventListener('click', function() {
+            speedDisplayed = true;
+            gradientDisplayed = false;
+            elevationDisplayed = false;
+            fetchGpx();
+        });
+
+        document.getElementById('gradientButton').addEventListener('click', function() {
+            speedDisplayed = false;
+            gradientDisplayed = true;
+            elevationDisplayed = false;
+            fetchGpx();
+        });
+
+        document.getElementById('elevationButton').addEventListener('click', function() {
+            speedDisplayed = false;
+            gradientDisplayed = false;
+            elevationDisplayed = true;
+            fetchGpx();
+        });
+
+        document.getElementById('clearButton').addEventListener('click', function() {
+            speedDisplayed = false;
+            gradientDisplayed = false;
+            elevationDisplayed = false;
+            fetchGpx();
+        });
 
         async function fetchGpx() {
             try {
@@ -32,16 +83,21 @@
                     async: true
                 }).on('loaded', function(e) {
                     var gpxLayer = e.target;
-                    var track = gpxLayer.getLayers()[0];
+                    var track= gpxLayer.getLayers()[0];;
+                     
                 
                     track.eachLayer(function (segment) {
-                        var points = segment.getLatLngs();
-                        for (var i = 0; i < points.length - 1; i++) {
-                            var speed = calculateSpeed(points[i], points[i + 1]);
-                            var color = getColorFromSpeed(speed);
-                            L.polyline([points[i], points[i + 1]], { color: color }).addTo(map);
-                        }
-                    });
+                    if (speedDisplayed) {
+                        displaySpeed(segment);
+                    }
+                    else if (gradientDisplayed) {
+                        displayGradient(segment);
+                    }
+                    else if (elevationDisplayed) {
+                        displayElevation(segment);
+                    }
+                    
+                });
                 
                     map.fitBounds(track.getBounds());
                 }).addTo(map);
@@ -109,6 +165,16 @@
 
         fetchGpx();
 
+        function displaySpeed(segment) {
+        // Logic for displaying speed gradient
+        var points = segment.getLatLngs();
+        for (var i = 0; i < points.length - 1; i++) {
+            var speed = calculateSpeed(points[i], points[i + 1]);
+            var color = getColorFromSpeed(speed);
+            L.polyline([points[i], points[i + 1]], { color: color }).addTo(map);
+        }
+    }
+
         function calculateSpeed(point1, point2) {
             var distance = point1.distanceTo(point2); // Distance in meters
             var timeDiff = (point2.meta.time - point1.meta.time) / 1000; // Time difference in seconds
@@ -120,6 +186,47 @@
             var speedScale = chroma.scale(['blue', 'green', 'yellow', 'orange', 'red']).domain([0, 14]);
             return speedScale(speed).hex();
         }
+
+
+        function displayGradient(segment) {
+        // Logic for displaying gradient
+        var points = segment.getLatLngs();
+        for (var i = 0; i < points.length - 1; i++) {
+            if (i+30 < points.length - 1){
+                var gradient = calculateGradient(points[i], points[i + 30]);
+            } else {
+                var gradient = calculateGradient(points[i], points[i + 1]);
+            }
+            var color = getColorFromGradient(gradient);
+            L.polyline([points[i], points[i + 1]], { color: color }).addTo(map);
+            }
+        }
+
+        function calculateGradient(point1, point2) {
+            var gradient = (point2.meta.ele - point1.meta.ele) / point1.distanceTo(point2);
+            return gradient*100;
+        }
+
+        function getColorFromGradient(gradient) {
+            var gradientScale = chroma.scale(['#8888ee', 'green', 'yellow', 'orange', 'red']).domain([-5, 0, 4, 6, 10]); // Example gradient scale
+            return gradientScale(gradient).hex();
+        }
+
+        function displayElevation(segment) {
+            // Logic for displaying elevation
+            var points = segment.getLatLngs();
+            for (var i = 0; i < points.length - 1; i++) {
+                var elevation = points[i].meta.ele;
+                var color = getColorFromElevation(elevation);
+                L.polyline([points[i], points[i + 1]], { color: color }).addTo(map);
+            }
+        }
+        function getColorFromElevation(elevation) {
+            var elevationScale = chroma.scale(['#77ee77','green', 'yellow', 'orange', 'red']).domain([0, 100, 300, 600, 1000,1300]); // Example elevation scale
+            return elevationScale(elevation).hex();
+        }
+
+    
 
         map.on('layeradd', function(event) {
             // Check if the added layer is a marker layer
