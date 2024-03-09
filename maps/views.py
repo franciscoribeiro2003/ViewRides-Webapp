@@ -1,14 +1,18 @@
+from telnetlib import LOGOUT
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.http import FileResponse, HttpResponse
 from .models import GPXData
 from .forms import GPXUploadForm, RegistrationForm
+from django.core.exceptions import PermissionDenied
 
 
 def index(request):
     return render(request, 'index.html')
 
 def upload_gpx(request):
+    if not request.user.is_authenticated:
+        raise PermissionDenied 
     CustomUser = get_user_model()  # Get the custom user model
     if request.method == 'POST':
         form = GPXUploadForm(request.POST, request.FILES)
@@ -31,7 +35,7 @@ def display_gpx_data(request):
         gpx_data_entries = GPXData.objects.filter(user=request.user)
         return render(request, 'display_gpx.html', {'gpx_data_entries': gpx_data_entries})
     else:
-        return HttpResponse('Please log in to view GPX data')
+        raise PermissionDenied
 
 def serve_gpx_file(request, id):
     gpx_data = get_object_or_404(GPXData, id=id)
@@ -56,3 +60,7 @@ def register(request):
     else:
         form = RegistrationForm()
     return render(request, 'register.html', {'form': form})
+
+def logout_view(request):
+    LOGOUT(request)
+    return redirect('index')

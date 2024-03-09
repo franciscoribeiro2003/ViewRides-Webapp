@@ -138,3 +138,5 @@ MEDIA_URL = '/media/'
 
 LOGIN_REDIRECT_URL = '/map/'
 AUTH_USER_MODEL = 'maps.CustomUser'
+LOGOUT_REDIRECT_URL = '/map/'
+
