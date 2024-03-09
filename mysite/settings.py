@@ -123,8 +123,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     ('js', 'polls/static/js/'),
-    ('css', 'polls/static/css/'),
-    ('gpx', 'polls/static/gpx/'),
+    ('css', 'polls/static/css/')
 ]
 
 

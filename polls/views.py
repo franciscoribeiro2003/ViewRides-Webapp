@@ -9,12 +9,6 @@ from .forms import GPXUploadForm
 def index (request):
     return render(request, 'index.html')
 
-def rota (request):
-    file_path = os.path.join(settings.BASE_DIR, 'polls/static/gpx/rota.gpx')
-    with open(file_path, 'r') as f:
-        file = f.read()
-    return HttpResponse(file, content_type='text/xml')
-
 def upload_gpx(request):
     if request.method == 'POST':
         form = GPXUploadForm(request.POST, request.FILES)

@@ -1,3 +1,10 @@
+{% extends 'base.html' %}
+
+{% block title %}
+GPX Data Detail
+{% endblock %}
+
+{% block content %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,11 +17,19 @@
     <!-- Include Leaflet.GPX plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.4.0/gpx.min.js"></script>
     <style>
-        #map { height: 600px; }
+        #map { height: 600px;
+               opacity: 1;
+               width: auto;
+               display: block;
+               margin-left: 50px;
+               margin-right: 50px;
+                 
+            }
         button {
             margin: 1px;
+            margin-top: 5px;
             border-radius: 10px;
-            background-color: hsl(204, 75%, 63%);
+            background-color: rgb(27, 27, 58);
             color: white;
             border-color: white;
             padding: 7px;
@@ -40,7 +55,6 @@
     <div id="map"></div>
     <div>
         <div class="mx-auto max-w-xl text-center">
-            <h2>Display Options</h2>
             <button id="speedButton">Display Speed</button>
             <button id="gradientButton">Display Gradient</button>
             <button id="elevationButton">Display Elevation</button>
@@ -250,3 +264,4 @@
     </script>
 </body>
 </html>
+{% endblock %}
