@@ -1,10 +1,20 @@
+from django.urls import reverse
+from datetime import datetime
 from telnetlib import LOGOUT
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.http import FileResponse, HttpResponse
+import gpxpy
+import requests
+from stravalib import Client
+
+from ViewRidesWebapp import settings
 from .models import GPXData
 from .forms import GPXUploadForm, RegistrationForm
 from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
+import polyline
+from datetime import timezone
 
 
 def index(request):
@@ -64,3 +74,105 @@ def register(request):
 def logout_view(request):
     LOGOUT(request)
     return redirect('index')
+
+
+
+def import_strava_rides(request):
+    strava_auth_url = "https://www.strava.com/oauth/authorize?" + \
+                      f"client_id=122950&" + \
+                      "response_type=code&" + \
+                      f"redirect_uri={request.build_absolute_uri(reverse('strava_callback'))}&" + \
+                      "approval_prompt=auto&" + \
+                      "scope=read,activity:read_all"
+
+    return redirect(strava_auth_url)
+
+def strava_callback(request):
+    if 'code' in request.GET:
+        code = request.GET['code']
+        
+        # Exchange authorization code for access token
+        token_response = requests.post(
+            'https://www.strava.com/oauth/token',
+            data={
+                'client_id': '122950',  
+                'client_secret': 'dcb1096b5f4aa7747121a8865d0ca5bf615cea2d',  
+                'code': code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': request.build_absolute_uri(reverse('strava_callback'))  # Ensure the redirect URI matches
+            }
+        )
+        #print ("--------"+'\n'+token_response.json())
+        if token_response.status_code == 200:
+            print(token_response.json())
+            access_token = token_response.json().get('access_token')
+            
+            # Use the access token to fetch activities from Strava API
+            # Example: Fetch activities using the access token
+            strava_activities_response = requests.get(
+                'https://www.strava.com/api/v3/athlete/activities',
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            
+            if strava_activities_response.status_code == 200:
+                strava_activities = strava_activities_response.json()
+                
+                # Process and save activities to your database
+                for activity in strava_activities:
+                    # Convert activity to GPX and save to database
+                    gpx1 = generate_gpx(activity, access_token)
+                    
+                    gpx_file = ContentFile(gpx1.encode('utf-8'))
+
+                    # Create a unique filename for the GPX file
+                    gpx_filename = f"{request.user.username}_{activity['id']}iinfo.gpx"
+
+                    # Save the GPX data to the database
+                    gpx_data = GPXData(user=request.user)
+                    gpx_data.gpx_file.save(gpx_filename, gpx_file)
+                    gpx_data.save()
+                    return HttpResponse("Activities imported successfully!")
+
+                    
+                    
+                return HttpResponse("Activities imported successfully!")
+            else:
+                return HttpResponse("Failed to fetch activities from Strava")
+        else:
+            return HttpResponse("Failed to obtain access token from Strava")
+    
+    return HttpResponse("Error occurred during Strava callback")
+
+def generate_gpx(activity, access_token):
+    client = Client(access_token=access_token)
+    types = ['time', 'latlng', 'altitude']
+    streams = client.get_activity_streams(activity['id'], types=types, resolution='high')
+
+    # Generate GPX content from activity
+    gpx = gpxpy.gpx.GPX()
+    gpx_track = gpxpy.gpx.GPXTrack()
+
+    # Set metadata
+    gpx.name = activity.get('name', '')  # Set the name of the activity
+    gpx.description = activity.get('description', '')  # Set the description of the activity
+    gpx.author_name = activity['athlete'].get('name', '')  # Set the name of the author
+    gpx.time = datetime.strptime(activity['start_date'], '%Y-%m-%dT%H:%M:%SZ')  # Set the time of the activity
+
+    # Add track segment
+    start_date_local = datetime.strptime(activity['start_date_local'], '%Y-%m-%dT%H:%M:%SZ')
+    gpx_segment = gpxpy.gpx.GPXTrackSegment()
+
+    # Add all points to the track segment
+    for time, latlng, altitude in zip(streams['time'].data, streams['latlng'].data, streams['altitude'].data):
+        track_point = gpxpy.gpx.GPXTrackPoint(
+            latitude=latlng[0],
+            longitude=latlng[1],
+            elevation=altitude,
+            time=datetime.fromtimestamp(time + int(start_date_local.timestamp()), tz=timezone.utc),
+        )
+        gpx_segment.points.append(track_point)
+
+    gpx_track.segments.append(gpx_segment)
+    gpx.tracks.append(gpx_track)
+
+    return gpx.to_xml()

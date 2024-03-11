@@ -13,4 +13,6 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('register/', views.register, name='register'),
     path('logout/', views.logout_view, name='logout'),
+    path('import/strava/', views.import_strava_rides, name='import_strava'),
+    path('strava-callback/', views.strava_callback, name='strava_callback'),
 ]
