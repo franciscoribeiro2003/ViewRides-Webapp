@@ -15,6 +15,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 import polyline
 from datetime import timezone
+from stravalib.exc import ObjectNotFound
 
 
 def index(request):
@@ -106,48 +107,67 @@ def strava_callback(request):
         if token_response.status_code == 200:
             print(token_response.json())
             access_token = token_response.json().get('access_token')
+
+            page = 1
+            per_page = 200
+            strava_activities = []
             
-            # Use the access token to fetch activities from Strava API
-            # Example: Fetch activities using the access token
-            strava_activities_response = requests.get(
-                'https://www.strava.com/api/v3/athlete/activities',
-                headers={'Authorization': f'Bearer {access_token}'}
-            )
+            while True:
+                strava_activities_response = requests.get(
+                    'https://www.strava.com/api/v3/athlete/activities',
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    params={'page': page, 'per_page': per_page}
+                )
             
-            if strava_activities_response.status_code == 200:
-                strava_activities = strava_activities_response.json()
+                if strava_activities_response.status_code == 200:
+                    new_activities = strava_activities_response.json()
+                    if not new_activities:  # If no more activities, break the loop
+                        break
+
+                    strava_activities.extend(new_activities)
+                    page += 1
+                else:
+                    return HttpResponse("Failed to fetch activities from Strava")
                 
-                # Process and save activities to your database
-                for activity in strava_activities:
-                    # Convert activity to GPX and save to database
-                    gpx1 = generate_gpx(activity, access_token)
-                    
-                    gpx_file = ContentFile(gpx1.encode('utf-8'))
+            for activity in strava_activities:
+                # Convert activity to GPX and save to database
+                gpx1 = generate_gpx(activity, access_token)
+                
+                if gpx1 is None:
+                    continue
+                
+                gpx_file = ContentFile(gpx1.encode('utf-8'))
 
-                    # Create a unique filename for the GPX file
-                    gpx_filename = f"{request.user.username}_{activity['id']}iinfo.gpx"
+                # Create a unique filename for the GPX file
+                gpx_filename = f"{activity['id']}_{activity.get('name', '')}_{request.user.username}.gpx"
 
-                    # Save the GPX data to the database
-                    gpx_data = GPXData(user=request.user)
-                    gpx_data.gpx_file.save(gpx_filename, gpx_file)
-                    gpx_data.save()
-                    return HttpResponse("Activities imported successfully!")
+                # Save the GPX data to the database
+                gpx_data = GPXData(user=request.user)
+                gpx_data.gpx_file.save(gpx_filename, gpx_file)
+                gpx_data.save()
 
                     
                     
-                return HttpResponse("Activities imported successfully!")
-            else:
-                return HttpResponse("Failed to fetch activities from Strava")
+            return HttpResponse("Activities imported successfully!")
         else:
-            return HttpResponse("Failed to obtain access token from Strava")
+            return HttpResponse("Failed to fetch activities from Strava")
+    else:
+        return HttpResponse("Failed to obtain access token from Strava")
     
-    return HttpResponse("Error occurred during Strava callback")
 
 def generate_gpx(activity, access_token):
     client = Client(access_token=access_token)
     types = ['time', 'latlng', 'altitude']
-    streams = client.get_activity_streams(activity['id'], types=types, resolution='high')
-
+    try:
+        streams = client.get_activity_streams(activity['id'], types=types, resolution='high')
+    except ObjectNotFound:
+        print(f"Stream data not found for activity {activity['id']}")
+        return None
+    
+    if 'latlng' not in streams:
+        print(f"No latlng data for activity {activity['id']}")
+        return None
+    
     # Generate GPX content from activity
     gpx = gpxpy.gpx.GPX()
     gpx_track = gpxpy.gpx.GPXTrack()

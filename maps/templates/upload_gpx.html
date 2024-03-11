@@ -21,6 +21,12 @@ Upload GPX File
             border-color: hsl(240, 55%, 10%);
             border: 2px solid hsl(240, 55%, 10%);
             text-align: center;
+
+            #btn btn-dark, .btn-light {
+                padding: 10px;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
@@ -30,9 +36,12 @@ Upload GPX File
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Upload</button>
+        <button type="submit" class="btn btn-dark">Upload</button>
     </form>
+    <!-- buttom to go to /map/import/strava -->
+    <button class="btn btn-light"><a href="{% url 'import_strava' %}">Import rides from Strava</a></button>
     </div>
+
 </body>
 </html>
 {% endblock %}
