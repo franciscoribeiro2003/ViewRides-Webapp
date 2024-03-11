@@ -407,10 +407,10 @@ GPX Data Detail
     <section class="bg-gray-50">
         <div class="mx-auto max-w-screen-xl px-4 py-32 lg:flex lg:h-screen lg:items-center">
         <div class="mx-auto max-w-xl text-center">
-        <h1 class="text-3xl font-extrabold sm:text-5xl">
-            <strong class="font-extrabold text-indigo-700 sm:block">
-            <span id="_text_content">GPX Data Detail - {{ gpx_data.id }}</span>
-            </strong>
+            <h1 class="text-3xl font-extrabold sm:text-5xl">
+                <strong class="font-extrabold text-indigo-700 sm:block" id="gpxName">
+                    <span id="_text_content">GPX Data Detail</span>
+                </strong>
             </h1>
             <p class="mt-3 text-lg text-gray-500 sm:mt-4">
             <span id="_text_content">This page displays the details of the GPX data with ID {{ gpx_data.id }}.</span>
@@ -474,6 +474,18 @@ GPX Data Detail
                 gpx = await response.text();
 
                 parseGpxAndSetMap(gpx);
+
+                const parser = new DOMParser();
+                const gpxXml = parser.parseFromString(gpx, 'text/xml');
+
+                const nameElement = gpxXml.querySelector('name');
+                if (nameElement) {
+                    const gpxName = nameElement.textContent;
+
+                    // Update the name in the HTML
+                    const gpxNameElement = document.getElementById('gpxName');
+                    gpxNameElement.textContent = gpxName;
+                }
 
 
                 new L.GPX(gpx, {
@@ -569,6 +581,8 @@ GPX Data Detail
         function displaySpeed(segment) {
         // Logic for displaying speed gradient
         var points = segment.getLatLngs();
+        //console.log(segment.getLatLngs());
+        //console.log(points);
         for (var i = 0; i < points.length - 1; i++) {
             var speed = calculateSpeed(points[i], points[i + 1]);
             var color = getColorFromSpeed(speed);
