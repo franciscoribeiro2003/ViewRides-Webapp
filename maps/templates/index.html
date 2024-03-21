@@ -53,6 +53,10 @@ Home
         //     transparent: true
         // }).addTo(map);
 
+        // Fetch available layers from GeoServer
+        var geoserverUrl = 'http://localhost:8081/geoserver/tutorial/wms';
+        var layersEndpoint = geoserverUrl + '?service=WMS&version=1.3.0&request=GetCapabilities';
+
         // Function to display GPX data on the map
         function displayGpxOnMap(gpxData, id) {
             // Load GPX data and add it to the map
@@ -105,6 +109,33 @@ Home
                 .then(gpxData => displayGpxOnMap(gpxData,{{ entry.id }}))
                 .catch(error => console.error('Error fetching GPX data:', error));
         {% endfor %}
+
+        fetch(layersEndpoint)
+            .then(response => response.text())
+            .then(data => {
+                var parser = new DOMParser();
+                var xmlDoc = parser.parseFromString(data, 'text/xml');
+                var layerNames = [];
+                var layers = xmlDoc.getElementsByTagName('Layer');
+                for (var i = 0; i < layers.length; i++) {
+                    layerNames.push(layers[i].getElementsByTagName('Name')[0].textContent);
+                }
+                createLayerToggles(layerNames);
+            })
+            .catch(error => console.error('Error fetching GeoServer layers:', error));
+
+        function createLayerToggles(layerNames) {
+            var overlayLayers = {};
+            layerNames.forEach(layerName => {
+                var wmsLayer = L.tileLayer.wms(geoserverUrl, {
+                    layers: layerName,
+                    format: 'image/png',
+                    transparent: true
+                });
+                overlayLayers[layerName] = wmsLayer;
+            });
+            L.control.layers(null, overlayLayers).addTo(map);
+        }
 
         map.on('layeradd', function(event) {
             // Check if the added layer is a marker layer
