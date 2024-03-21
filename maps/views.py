@@ -19,7 +19,13 @@ from stravalib.exc import ObjectNotFound
 
 
 def index(request):
-    return render(request, 'index.html')
+    gpx_data_entries = []
+    if request.user.is_authenticated:
+        # Filter GPX data entries by the logged-in user
+        gpx_data_entries = GPXData.objects.filter(user=request.user)
+
+    context = {'gpx_data_entries': gpx_data_entries}
+    return render(request, 'index.html', context)
 
 def upload_gpx(request):
     if not request.user.is_authenticated:
@@ -158,12 +164,17 @@ def strava_callback(request):
 def generate_gpx(activity, access_token):
     client = Client(access_token=access_token)
     types = ['time', 'latlng', 'altitude']
-    try:
-        streams = client.get_activity_streams(activity['id'], types=types, resolution='high')
-    except ObjectNotFound:
-        print(f"Stream data not found for activity {activity['id']}")
-        return None
     
+    for _ in range(5):  # Retry up to 5 times
+        try:
+            streams = client.get_activity_streams(activity['id'], types=types, resolution='high')
+            break  # If the request is successful, break the loop
+        except (ObjectNotFound, ConnectionError) as e:
+            print(f"Error fetching stream data for activity {activity['id']}: {e}")
+            time.sleep(5)  # Wait for 5 seconds before retrying
+    else:
+        return None  # If all retries fail, return None
+
     if 'latlng' not in streams:
         print(f"No latlng data for activity {activity['id']}")
         return None

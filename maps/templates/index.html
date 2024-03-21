@@ -12,12 +12,13 @@ Home
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <style>
-        #map { height: 600px;
+        #map { height: 1000px;
                opacity: 1;
                width: auto;
                display: block;
                margin-left: 50px;
                margin-right: 50px;
+               border-radius: 10px;
                  
             }
         a {
@@ -40,32 +41,31 @@ Home
         var map = L.map('map').setView([45, 0], 5); // Set initial map view
         map.getPane('tilePane').style.opacity = 0.5;
 
-        // Add OpenStreetMap tile layer
+        // OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
-        // Function to fetch and display GPX data for a given ID
-        async function fetchAndDisplayGpxData(id) {
-            try {
-                // Fetch the GPX data for the given ID
-                const response = await fetch(`/map/gpx_data/${id}/file`);
-                const gpxData = await response.text();
-
-                // Display the GPX data on the map
-                displayGpxOnMap(gpxData);
-            } catch (error) {
-            }
-        }
+        // GEOSERVER
+        // var wmsLayer = L.tileLayer.wms('http://localhost:8081/geoserver/tutorial/wms', {
+        //     layers: 'tutorial:basemap',
+        //     format: 'image/png',
+        //     transparent: true
+        // }).addTo(map);
 
         // Function to display GPX data on the map
-        function displayGpxOnMap(gpxData) {
+        function displayGpxOnMap(gpxData, id) {
             // Load GPX data and add it to the map
             new L.GPX(gpxData, {
                 async: true,
                 polyline_options: {
-                    color: 'blue', // Line color
+                    color: '#5577dd', // Line color
                     weight: 5 // Line weight
+                },
+                marker_options: {
+                    startIconUrl: null, // Disable start marker
+                    endIconUrl: null, // Disable end marker
+                    shadowUrl: null // Disable shadow
                 }
             }).on('loaded', function(e) {
                 var gpxLayer = e.target;
@@ -73,16 +73,39 @@ Home
 
                 // Add GPX track to the map
                 track.addTo(map);
+                // Add click event listener to the track
+                track.on('click', function() {
+                    // Redirect to the respective page when clicked
+                    window.location.href = `/map/gpx_data/${id}`;
+                });
+
+                // Add mouseover event listener to the track
+                track.on('mouseover', function() {
+                    // Change the color of the track when the mouse is over it
+                    this.setStyle({
+                        color: '#9499ff'
+                    });
+                });
+
+                // Add mouseout event listener to the track
+                track.on('mouseout', function() {
+                    // Change the color of the track back to its original color when the mouse is out
+                    this.setStyle({
+                        color: '#5577dd'
+                    });
+                });
             }).addTo(map);
+
         }
 
-        // Determine the maximum ID available in the database
-        const maxId = 400;
+        // Iterate over GPX data entries and display them on the map
+        {% for entry in gpx_data_entries %}
+            fetch(`/map/gpx_data/{{ entry.id }}/file`)
+                .then(response => response.text())
+                .then(gpxData => displayGpxOnMap(gpxData,{{ entry.id }}))
+                .catch(error => console.error('Error fetching GPX data:', error));
+        {% endfor %}
 
-        // Fetch and display GPX data for each ID
-        for (let id = 1; id <= maxId; id++) {
-            fetchAndDisplayGpxData(id);
-        }
         map.on('layeradd', function(event) {
             // Check if the added layer is a marker layer
             if (event.layer instanceof L.Marker) {
