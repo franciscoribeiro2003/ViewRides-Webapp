@@ -28,7 +28,13 @@ SECRET_KEY = 'django-insecure-=q56z6e-#ed5k6e&$$69ltdld0qf)%kgd99x8h3ep2e%+z+_8^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '6103-2001-818-e76d-6500-5172-b9da-a904-862e.ngrok-free.app',
+    '127.0.0.1'
+    ]
+
+#CSRF_TRUSTED_ORIGINS = ['https://6103-2001-818-e76d-6500-5172-b9da-a94-862e.ngrok-free.app']
+
 
 
 # Application definition
@@ -81,6 +87,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'postgis': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'points',
+        'USER': 'rick',
+        'PASSWORD': 'morty',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -140,3 +154,14 @@ LOGIN_REDIRECT_URL = '/map/'
 AUTH_USER_MODEL = 'maps.CustomUser'
 LOGOUT_REDIRECT_URL = '/map/'
 
+
+# Geoserver
+GEOSERVER_BASE_URL = 'http://localhost:8081/geoserver'
+GEOSERVER_WORKSPACE = 'tutorial'
+GEOSERVER_DATASTORE = 'POIS'
+GEOSERVER_AUTH_TOKEN = 'YWRtaW46Z2Vvc2VydmVy'
+
+
+# In your Django project's settings.py
+
+DATABASE_ROUTERS = ['maps.routers.PointOfInterestRouter']

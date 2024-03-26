@@ -15,4 +15,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('import/strava/', views.import_strava_rides, name='import_strava'),
     path('strava-callback/', views.strava_callback, name='strava_callback'),
+    path('pois/', views.map_view, name='poi_list'),
+    path('api/pois/', views.poi_list, name='poi_list'),  
+    path('api/add_poi/', views.add_poi, name='add_poi'),
 ]

@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager
+from django.contrib.auth.models import User
+
+from ViewRidesWebapp import settings
 
 class CustomUser(AbstractUser):
     groups = models.ManyToManyField(
@@ -23,4 +26,14 @@ class GPXData(models.Model):
     gpx_file = models.FileField(upload_to='gpx_files/')
 
     def __str__(self):
-        return self.user.username, self.gpx_file.name
+        return f'{self.gpx_file.name}--{self.user.username}'
+
+class PointOfInterest(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    class Meta:
+        managed = True

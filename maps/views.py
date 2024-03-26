@@ -1,23 +1,26 @@
+from django.db import connections
 from django.urls import reverse
 from datetime import datetime
 from telnetlib import LOGOUT
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth import get_user_model
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 import gpxpy
 import requests
 from stravalib import Client
 
 from ViewRidesWebapp import settings
-from .models import GPXData
-from .forms import GPXUploadForm, RegistrationForm
+from .models import GPXData, PointOfInterest
+from .forms import GPXUploadForm, PointOfInterestForm, RegistrationForm
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 import polyline
 from datetime import timezone
 from stravalib.exc import ObjectNotFound
+from django.views.decorators.http import require_POST
 
 
+# INDEX #################################
 def index(request):
     gpx_data_entries = []
     if request.user.is_authenticated:
@@ -27,6 +30,7 @@ def index(request):
     context = {'gpx_data_entries': gpx_data_entries}
     return render(request, 'index.html', context)
 
+# UPLOAD #################################
 def upload_gpx(request):
     if not request.user.is_authenticated:
         raise PermissionDenied 
@@ -46,6 +50,7 @@ def upload_gpx(request):
         form = GPXUploadForm()
     return render(request, 'upload_gpx.html', {'form': form})
 
+# DISPLAY #################################
 def display_gpx_data(request):
     if request.user.is_authenticated:
         # Filter GPX data entries by the logged-in user
@@ -68,6 +73,7 @@ def display_gpx_data_detail(request, id):
     gpx_data = get_object_or_404(GPXData, id=id, user=request.user)
     return render(request, 'gpx_data_detail.html', {'gpx_data': gpx_data})
 
+# REGISTER #################################
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -83,7 +89,7 @@ def logout_view(request):
     return redirect('index')
 
 
-
+# STRAVA #################################
 def import_strava_rides(request):
     strava_auth_url = "https://www.strava.com/oauth/authorize?" + \
                       f"client_id=122950&" + \
@@ -160,7 +166,6 @@ def strava_callback(request):
     else:
         return HttpResponse("Failed to obtain access token from Strava")
     
-
 def generate_gpx(activity, access_token):
     client = Client(access_token=access_token)
     types = ['time', 'latlng', 'altitude']
@@ -207,3 +212,41 @@ def generate_gpx(activity, access_token):
     gpx.tracks.append(gpx_track)
 
     return gpx.to_xml()
+
+# Points of Interest #################################
+
+
+
+def map_view(request):
+    return render(request, 'add_point.html')
+
+def poi_list(request):
+    pois = PointOfInterest.objects.using('postgis').all().values('id', 'name', 'latitude', 'longitude')
+    return JsonResponse(list(pois), safe=False)
+
+@require_POST
+def add_poi(request):
+    print('addPOI called');
+    form = PointOfInterestForm(request.POST)
+    if form.is_valid():
+        print('addPOI valid');
+        poi = form.save(commit=False)
+        
+        # Specify the database alias to use
+        with connections['postgis'].cursor() as cursor:
+            cursor.execute("SET search_path TO public")
+            poi.save(using='postgis')
+        
+        # Return details of the newly added point in the response
+        poi_data = {
+            'name': poi.name,
+            'latitude': poi.latitude,
+            'longitude': poi.longitude
+        }
+        print (poi_data)
+        return JsonResponse({'success': True, 'poi': poi_data})
+    else:
+        print('addPOI invalid');
+        errors = form.errors.as_json()
+        return JsonResponse({'success': False, 'errors': errors})
+    
