@@ -1,6 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser, PointOfInterest, GPXData
+from django.http import HttpResponse
+from django.shortcuts import render
+import requests
+from django.urls import path
+
 
 # Register the CustomUser model with the admin site
 admin.site.register(CustomUser, UserAdmin)
@@ -35,4 +40,34 @@ class GPXDataAdmin(admin.ModelAdmin):
 
 admin.site.register(GPXData, GPXDataAdmin)
 
-#admin.site.register(GPXData)
+
+class CustomAdminSite(admin.AdminSite):
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('layer-list/', self.admin_view(self.layer_list), name='layer_list'),
+        ]
+        return custom_urls + urls
+
+    def layer_list(self, request):
+        # Make a request to GeoServer API to get the list of layers
+        geoserver_url = "http://localhost:8081/geoserver/rest/workspaces/tutorial/layers.json?list=available&detail=layerGroup&filter=enabled"
+        response = requests.get(geoserver_url, auth=('admin', 'geoserver'))
+
+        if response.status_code == 200:
+            # Extract layer names from the response JSON
+            layer_names = [layer['name'] for layer in response.json()['layers']['layer']]
+            # Render the layer names in a simple HTML format
+            return render(request, 'custom_layer_list.html', {'layer_names': layer_names})
+        else:
+            return HttpResponse("Failed to fetch layer list from GeoServer.")
+
+# Instantiate CustomAdminSite
+custom_admin_site = CustomAdminSite(name='custom_admin')
+custom_admin_site.register(CustomUser, UserAdmin)
+custom_admin_site.register(PointOfInterest, PointOfInterestAdmin)
+custom_admin_site.register(GPXData, GPXDataAdmin)
+
+
+# Register the custom admin site
+admin.site = custom_admin_site
