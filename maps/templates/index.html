@@ -12,13 +12,16 @@ Home
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <style>
-        #map { height: 1000px;
+        #map { 
                opacity: 1;
                width: auto;
+               height: 94.2vh;
                display: block;
+               {% comment %} 
                margin-left: 50px;
-               margin-right: 50px;
+               margin-right: 50px; 
                border-radius: 10px;
+               {% endcomment %}
                  
             }
         a {
@@ -38,6 +41,9 @@ Home
     <script>
         var map = L.map('map').setView([45, 0], 5); // Set initial map view
         map.getPane('tilePane').style.opacity = 0.5;
+
+        var layerNames;
+        var overlayLayers = {};
 
         // OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -141,6 +147,55 @@ Home
                 // Remove the marker from the map
                 map.removeLayer(event.layer);
             }
+        });
+
+        var wmsLayer = L.tileLayer.wms('http://localhost:8081/geoserver/tutorial/wms', {
+            layers: 'tutorial:points_view',
+            format: 'image/png',
+            transparent: true
+        })
+
+        map.on('click', function(e) {
+            var latlng = e.latlng;
+            var pointTemplate = '<table class="featureInfo">';
+
+            var params = {
+                request: 'GetFeatureInfo',
+                service: 'WMS',
+                srs: 'EPSG:4326',
+                version: '1.1.1',
+                format: 'image/png',
+                bbox: map.getBounds().toBBoxString(),
+                height: map.getSize().y,
+                width: map.getSize().x,
+                layers: 'tutorial:points_view',
+                query_layers: 'tutorial:points_view',
+                info_format: 'text/html',
+                x: Math.floor(map.latLngToContainerPoint(latlng).x),
+                y: Math.floor(map.latLngToContainerPoint(latlng).y)
+            };
+
+            // Send GetFeatureInfo request
+            fetch(wmsLayer._url + L.Util.getParamString(params))
+                .then(response => response.text())
+                .then(html => {
+                    if (html.includes(pointTemplate)) {
+                        // Point clicked
+                        //console.log('Feature Information:', html);
+                        html = html.replace(/<th>\s*fid\s*<\/th>/i, '').replace(/<td>[^<]*<\/td>/i, '');
+                        console.log(html);
+                        var popup = L.popup({
+                                maxWidth: 300,  // Adjust the maximum width
+                                minWidth: 100,  // Adjust the minimum width
+                                maxHeight: 400, // Adjust the maximum height
+                                autoPan: true   // Enable automatic panning if the popup is not completely visible
+                            })
+                            .setLatLng(latlng)
+                            .setContent(html)
+                            .openOn(map);
+                    } 
+                })
+                .catch(error => console.error('Error fetching feature information:', error));
         });
     </script>
 </body>
