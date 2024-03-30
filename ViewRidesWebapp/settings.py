@@ -156,9 +156,9 @@ LOGOUT_REDIRECT_URL = '/map/'
 
 
 # Geoserver
-GEOSERVER_BASE_URL = 'http://localhost:8081/geoserver'
-GEOSERVER_WORKSPACE = 'tutorial'
-GEOSERVER_DATASTORE = 'POIS'
+GEOSERVER_BASE_URL = 'http://localhost:8081/geoserver/rest'
+GEOSERVER_USERNAME = 'admin'
+GEOSERVER_PASSWORD = 'geoserver'
 GEOSERVER_AUTH_TOKEN = 'YWRtaW46Z2Vvc2VydmVy'
 
 

@@ -34,6 +34,7 @@ class PointOfInterest(models.Model):
     description = models.TextField()
     latitude = models.FloatField()
     longitude = models.FloatField()
+    layer = models.CharField(max_length=100, default='tutorial:points_view')
 
     class Meta:
         managed = True

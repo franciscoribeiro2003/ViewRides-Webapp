@@ -19,4 +19,5 @@ urlpatterns = [
     path('pois/', views.map_view, name='poi_list'),
     path('api/pois/', views.poi_list, name='poi_list'),  
     path('api/add_poi/', views.add_poi, name='add_poi'),
+    path('get_layers_list/', views.get_layers_list, name='get_layers_list'),
 ]

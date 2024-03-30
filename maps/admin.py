@@ -5,7 +5,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 import requests
 from django.urls import path
-
+from .forms import GeoServerLayerWidget
+from django import forms
 
 # Register the CustomUser model with the admin site
 admin.site.register(CustomUser, UserAdmin)
@@ -13,9 +14,22 @@ admin.site.register(CustomUser, UserAdmin)
 # Points of interest
 #admin.site.register(PointOfInterest)
 
+class PointOfInterestAdminForm(forms.ModelForm):
+    class Meta:
+        model = PointOfInterest
+        fields = '__all__'
+        widgets = {
+            'layer': GeoServerLayerWidget(),
+        }
+
+# Register the PointOfInterestAdminForm class with the admin site
+@admin.register(PointOfInterest)
 class PointOfInterestAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', 'latitude', 'longitude')
     search_fields = ('name', 'description')
+
+    # Use the PointOfInterestAdminForm for the PointOfInterest admin interface
+    form = PointOfInterestAdminForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -24,8 +38,6 @@ class PointOfInterestAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         # Set the database alias to 'postgis' before saving the object
         obj.save(using='postgis')
-
-admin.site.register(PointOfInterest, PointOfInterestAdmin)
 
 # GPX data
 

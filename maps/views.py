@@ -226,7 +226,6 @@ def poi_list(request):
 
 @require_POST
 def add_poi(request):
-    print('addPOI called');
     form = PointOfInterestForm(request.POST)
     if form.is_valid():
         print('addPOI valid');
@@ -241,7 +240,8 @@ def add_poi(request):
         poi_data = {
             'name': poi.name,
             'latitude': poi.latitude,
-            'longitude': poi.longitude
+            'longitude': poi.longitude,
+            'layer': poi.layer
         }
         print (poi_data)
         return JsonResponse({'success': True, 'poi': poi_data})
@@ -250,3 +250,19 @@ def add_poi(request):
         errors = form.errors.as_json()
         return JsonResponse({'success': False, 'errors': errors})
     
+
+def get_layers_list(request):
+    # Authentication credentials
+    username = settings.GEOSERVER_USERNAME
+    password = settings.GEOSERVER_PASSWORD
+
+    # Fetch layer names from GeoServer REST API
+    url = "{}/layers.json?list=available&detail=layerGroup&filter=enabled".format(settings.GEOSERVER_BASE_URL)
+    
+    response = requests.get(url, auth=(username, password))
+    data = response.json()
+
+    # Extract layer names and return as JSON response
+    layer_names = [layer['name'] for layer in response.json()['layers']['layer']]
+    return JsonResponse({'layers': layer_names})
+

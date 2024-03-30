@@ -52,6 +52,8 @@ ADD POI
         <div id="map"></div>
         <div id="poi-list" class='list'></div>
 
+        
+
     </body>
         <script>
             $(document).ready(function () {
@@ -61,29 +63,76 @@ ADD POI
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
 
+               
+
+                //GEOSERVER
+                var wmsLayer = L.tileLayer.wms('http://localhost:8081/geoserver/tutorial/wms', {
+                    layers: 'tutorial:allPoints',
+                    format: 'image/png',
+                    transparent: true
+                }).addTo(map);
+
                 // Function to handle map clicks
                 function onMapClick(e) {
-                    // Display a popup to add a new POI
+                    var popupContent = `
+                                        <form id="poi-form" class="form-group">
+                                            {% csrf_token %}
+                                            Name: <input type="text" class="form-control" id="name" placeholder="Name"><br>
+                                            Description: <textarea id="description" class="form-control" placeholder="Description"></textarea><br>
+                                            Layer: <input type="text" list="layers" value="" class="form-control" placeholder="Layer">
+                                            <datalist id="layers">
+                                            </datalist><br>
+                                            <button class="btn btn-primary mb-2" type="submit">Add</button>
+                                        </form>`;
                     var popup = L.popup()
                         .setLatLng(e.latlng)
-                        .setContent('<form id="poi-form" class="form-group">{% csrf_token %} Name: <input type="text" class="form-control" id="name" placeholder="Name"><br>Description: <textarea id="description" class="form-control" placeholder="Description"></textarea><br><button class="btn btn-primary mb-2" type="submit">Add</button></form>')
+                        .setContent(popupContent)
                         .openOn(map);
                     
+                    fetchLayersAndPopulateDatalist();
+
                     // Handle form submission
                     $('#poi-form').submit(function (event) {
                         event.preventDefault();
                         var name = $('#name').val();
                         var description = $('#description').val();
+                        var layer = $('input[list="layers"]').val();
                         var latitude = e.latlng.lat;
                         var longitude = e.latlng.lng;
-                        addPOI(name, description, latitude, longitude);
+                        addPOI(name, description, latitude, longitude, layer);
                         map.closePopup();
+                        window.location.reload();
                     });
                 }
 
-                function addPOI(name, description, latitude, longitude) {
+                function fetchLayersAndPopulateDatalist() {
+                    $.ajax({
+                        url: "{% url 'get_layers_list' %}",
+                        type: "GET",
+                        dataType: "json",
+                        success: function(data) {
+                            const layersDatalist = document.getElementById('layers');
+                            layersDatalist.innerHTML = ''; // Clear existing options
+                            if (data.layers && Array.isArray(data.layers)) {
+                                data.layers.forEach(layerName => {
+                                    const option = document.createElement('option');
+                                    option.value = layerName;
+                                    layersDatalist.appendChild(option);
+                                });
+                            } else {
+                                console.error('Invalid layers data:', data);
+                            }
+                        },
+                        error: function(error) {
+                            console.error('Error fetching layers:', error);
+                        }
+                    });
+                }
+
+
+                function addPOI(name, description, latitude, longitude, layer) {
+                    console.log('Adding POI:', name, description, latitude, longitude, layer);
                     var csrftoken = getCookie('csrftoken'); // Get the CSRF token
-                    // Check if CSRF token is retrieved successfully
                     if (!csrftoken) {
                         console.error('CSRF token not found.');
                         return;
@@ -100,7 +149,8 @@ ADD POI
                             name: name,
                             description: description,
                             latitude: latitude,
-                            longitude: longitude
+                            longitude: longitude,
+                            layer: layer
                         },
                         success: function(data) {
                             console.log('POI added successfully');
