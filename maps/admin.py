@@ -6,6 +6,7 @@ from django.shortcuts import render
 import requests
 from django.urls import path, reverse
 from django import forms
+from django.utils.html import format_html
 
 # Register the CustomUser model with the admin site
 admin.site.register(CustomUser, UserAdmin)
@@ -22,12 +23,14 @@ class PointOfInterestAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['layer'].widget.attrs['class'] = 'autocomplete'
-        #self.fields['layer'].widget.attrs['data-autocomplete-source'] = reverse('get_layers_list') + '?term='  # Set autocomplete data source using the URL
+        #self.fields['latitude'].widget.attrs['readonly'] = True
+        #self.fields['longitude'].widget.attrs['readonly'] = True
     
 @admin.register(PointOfInterest)
 class PointOfInterestAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', 'latitude', 'longitude')
     search_fields = ('name', 'description')
+
 
     # Use the PointOfInterestAdminForm for the PointOfInterest admin interface
     form = PointOfInterestAdminForm
@@ -39,6 +42,7 @@ class PointOfInterestAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         # Set the database alias to 'postgis' before saving the object
         obj.save(using='postgis')
+
 
 # GPX data
 
