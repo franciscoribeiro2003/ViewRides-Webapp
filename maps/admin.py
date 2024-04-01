@@ -4,8 +4,7 @@ from .models import CustomUser, PointOfInterest, GPXData
 from django.http import HttpResponse
 from django.shortcuts import render
 import requests
-from django.urls import path
-from .forms import GeoServerLayerWidget
+from django.urls import path, reverse
 from django import forms
 
 # Register the CustomUser model with the admin site
@@ -18,11 +17,13 @@ class PointOfInterestAdminForm(forms.ModelForm):
     class Meta:
         model = PointOfInterest
         fields = '__all__'
-        widgets = {
-            'layer': GeoServerLayerWidget(),
-        }
 
-# Register the PointOfInterestAdminForm class with the admin site
+    # Override __init__ to implement autocomplete for the layer field
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['layer'].widget.attrs['class'] = 'autocomplete'
+        #self.fields['layer'].widget.attrs['data-autocomplete-source'] = reverse('get_layers_list') + '?term='  # Set autocomplete data source using the URL
+    
 @admin.register(PointOfInterest)
 class PointOfInterestAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', 'latitude', 'longitude')
@@ -67,9 +68,7 @@ class CustomAdminSite(admin.AdminSite):
         response = requests.get(geoserver_url, auth=('admin', 'geoserver'))
 
         if response.status_code == 200:
-            # Extract layer names from the response JSON
             layer_names = [layer['name'] for layer in response.json()['layers']['layer']]
-            # Render the layer names in a simple HTML format
             return render(request, 'custom_layer_list.html', {'layer_names': layer_names})
         else:
             return HttpResponse("Failed to fetch layer list from GeoServer.")

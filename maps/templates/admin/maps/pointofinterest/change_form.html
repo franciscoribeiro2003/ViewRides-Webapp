@@ -1,0 +1,95 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include jQuery UI CSS -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+    <style>
+        /* Styles for the autocomplete input field */
+        .autocomplete {
+            /* Your styles for the input field here */
+            background-color: #ffffff !important;
+        }
+
+        /* Styles for the autocomplete menu items */
+        .ui-autocomplete {
+            /* Your styles for the autocomplete menu items here */
+        }
+
+        .ui-autocomplete .ui-menu-item:nth-of-type(even) {
+            background-color: #417690 !important; /* Color for even rows */
+        }
+
+        .ui-autocomplete .ui-menu-item:nth-of-type(odd) {
+            background-color: #ffffff !important; /* Color for odd rows */
+        }
+
+        .ui-autocomplete .ui-menu-item:nth-of-type(odd) {
+            color: #000000; /* Text color */
+        }
+        .ui-autocomplete .ui-menu-item:nth-of-type(even) {
+            color: #ffffff; /* Text color */
+        }
+
+        .ui-menu {
+            border-radius: 3px;
+            border: 6px solid #000000;
+        }
+        .ui-autocomplete .ui-menu-item {
+            border-radius: 3px;
+        }
+        .ui-autocomplete .ui-menu-item-wrapper:hover,
+        .ui-autocomplete .ui-menu-item-wrapper.ui-state-active {
+            border-radius: 3px;
+            background-color: #555555;
+            opacity: 0.5;
+            color: #ffffff;
+            border: 0px;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
+    {% comment %} <script>
+    $(function() {
+        $(".autocomplete").autocomplete({
+            source: function(request, response) {
+                var availableLayers = $(".autocomplete").attr("data-autocomplete-source");
+                var layersArray = availableLayers.substring(1, availableLayers.length - 1).split(', ');
+
+                // Filter layers based on user input
+                var filteredLayers = layersArray.filter(function(layer) {
+                    return layer.toLowerCase().indexOf(request.term.toLowerCase()) !== -1;
+                });
+
+                // Limit the number of displayed suggestions to 5
+                var limitedLayers = filteredLayers.slice(0, 5);
+                response(limitedLayers);
+            },
+            minLength: 0 // Minimum length of user input before triggering autocomplete
+        });
+    });
+    </script> {% endcomment %}
+    <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
+    <script>
+        $(function() {
+            $(".autocomplete").autocomplete({
+                source: function(request, response) {
+                    var term = request.term;
+                    $.getJSON("{% url 'get_layers_list' %}?term=" + term, function(data) {
+                        var limitedLayers = data.layers.slice(0, 5); // Limit to 5 layers
+                        //var limitedLayers = data.layers;
+                        response(limitedLayers);
+                    });
+                },
+                minLength: 1 
+            });
+        });
+    </script>
+{% endblock %}

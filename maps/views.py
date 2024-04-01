@@ -251,18 +251,23 @@ def add_poi(request):
         return JsonResponse({'success': False, 'errors': errors})
     
 
+
 def get_layers_list(request):
     # Authentication credentials
     username = settings.GEOSERVER_USERNAME
     password = settings.GEOSERVER_PASSWORD
-
-    # Fetch layer names from GeoServer REST API
-    url = "{}/layers.json?list=available&detail=layerGroup&filter=enabled".format(settings.GEOSERVER_BASE_URL)
     
+    # Get the search term from the query parameters
+    search_term = request.GET.get('term', '')
+
+    # Fetch all layer names from GeoServer REST API
+    url = "{}/layers.json?list=available&detail=layerGroup&filter=enabled".format(settings.GEOSERVER_BASE_URL)
     response = requests.get(url, auth=(username, password))
     data = response.json()
 
-    # Extract layer names and return as JSON response
-    layer_names = [layer['name'] for layer in response.json()['layers']['layer']]
-    return JsonResponse({'layers': layer_names})
+    # Filter layer names based on the search term
+    all_layers = [layer['name'] for layer in data['layers']['layer']]
+    filtered_layers = [layer for layer in all_layers if search_term.lower() in layer.lower()]
+
+    return JsonResponse({'layers': filtered_layers})
 

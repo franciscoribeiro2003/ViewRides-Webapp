@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'maps'
+    'maps',
 ]
 
 MIDDLEWARE = [
@@ -157,11 +157,11 @@ LOGOUT_REDIRECT_URL = '/map/'
 
 # Geoserver
 GEOSERVER_BASE_URL = 'http://localhost:8081/geoserver/rest'
+GEOSERVER_LAYERS = GEOSERVER_BASE_URL+"/layers.json?list=available&detail=layerGroup&filter=enabled"
 GEOSERVER_USERNAME = 'admin'
 GEOSERVER_PASSWORD = 'geoserver'
 GEOSERVER_AUTH_TOKEN = 'YWRtaW46Z2Vvc2VydmVy'
 
 
-# In your Django project's settings.py
 
 DATABASE_ROUTERS = ['maps.routers.PointOfInterestRouter']
