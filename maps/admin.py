@@ -11,37 +11,36 @@ from django.utils.html import format_html
 # Register the CustomUser model with the admin site
 admin.site.register(CustomUser, UserAdmin)
 
-# Points of interest
-#admin.site.register(PointOfInterest)
+
 
 class PointOfInterestAdminForm(forms.ModelForm):
     class Meta:
         model = PointOfInterest
         fields = '__all__'
 
-    # Override __init__ to implement autocomplete for the layer field
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['layer'].widget.attrs['class'] = 'autocomplete'
-        #self.fields['latitude'].widget.attrs['readonly'] = True
-        #self.fields['longitude'].widget.attrs['readonly'] = True
     
 @admin.register(PointOfInterest)
 class PointOfInterestAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description', 'latitude', 'longitude')
+    list_display = ('name', 'has_description', 'latitude', 'longitude', 'layer')
     search_fields = ('name', 'description')
 
 
-    # Use the PointOfInterestAdminForm for the PointOfInterest admin interface
     form = PointOfInterestAdminForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.using('postgis')  # Specify the database alias for PostGIS
+        return qs.using('postgis')  
     
     def save_model(self, request, obj, form, change):
-        # Set the database alias to 'postgis' before saving the object
         obj.save(using='postgis')
+
+    def has_description(self, obj):
+        return bool(obj.description)
+    has_description.boolean = True
+    has_description.short_description = 'Description'
 
 
 # GPX data

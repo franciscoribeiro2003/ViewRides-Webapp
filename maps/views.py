@@ -269,5 +269,8 @@ def get_layers_list(request):
     all_layers = [layer['name'] for layer in data['layers']['layer']]
     filtered_layers = [layer for layer in all_layers if search_term.lower() in layer.lower()]
 
+    if search_term:
+        return JsonResponse({'layers': filtered_layers[:5]})
+
     return JsonResponse({'layers': filtered_layers})
 

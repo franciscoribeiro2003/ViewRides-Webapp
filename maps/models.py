@@ -31,7 +31,7 @@ class GPXData(models.Model):
 class PointOfInterest(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
     latitude = models.FloatField()
     longitude = models.FloatField()
     layer = models.CharField(max_length=100, default='tutorial:points_view')
