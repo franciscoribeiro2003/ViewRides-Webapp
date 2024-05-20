@@ -107,11 +107,13 @@ Home
         }
 
         // Iterate over GPX data entries and display them on the map
+        count = 0;
         {% for entry in gpx_data_entries %}
             fetch(`/map/gpx_data/{{ entry.id }}/file`)
                 .then(response => response.text())
                 .then(gpxData => displayGpxOnMap(gpxData,{{ entry.id }}))
                 .catch(error => console.error('Error fetching GPX data:', error));
+            count += 1;
         {% endfor %}
 
         fetch(layersEndpoint)

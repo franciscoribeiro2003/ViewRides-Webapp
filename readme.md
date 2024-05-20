@@ -22,7 +22,7 @@ View GPX Rides is a user-friendly web application built with Django that empower
   - **Combined Ride Overview:** View all your rides plotted together on a map, providing a comprehensive picture of your cycling journey.
   - **Detailed Ride Analysis:** Select individual rides explore specific ride data in a clear and informative manner.
 
-
+<img src="src/ViewRidesDiagram.png" title="" alt="ViewRidesDiagram.png" data-align="center">
 
 ## Installation
 

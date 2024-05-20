@@ -1,23 +1,24 @@
 from django.db import connections
 from django.urls import reverse
-from datetime import datetime
-from telnetlib import LOGOUT
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.http import FileResponse, HttpResponse, JsonResponse
+from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
+from django.views.decorators.http import require_POST
+
+from datetime import datetime
+from datetime import timezone
 import gpxpy
 import requests
 from stravalib import Client
+from stravalib.exc import ObjectNotFound
+from telnetlib import LOGOUT
+import os
 
 from ViewRidesWebapp import settings
 from .models import GPXData, PointOfInterest
 from .forms import GPXUploadForm, PointOfInterestForm, RegistrationForm
-from django.core.exceptions import PermissionDenied
-from django.core.files.base import ContentFile
-import polyline
-from datetime import timezone
-from stravalib.exc import ObjectNotFound
-from django.views.decorators.http import require_POST
 
 
 # INDEX #################################
@@ -26,7 +27,7 @@ def index(request):
     if request.user.is_authenticated:
         # Filter GPX data entries by the logged-in user
         gpx_data_entries = GPXData.objects.filter(user=request.user)
-
+    print(len(gpx_data_entries))
     context = {'gpx_data_entries': gpx_data_entries}
     return render(request, 'index.html', context)
 
@@ -273,4 +274,34 @@ def get_layers_list(request):
         return JsonResponse({'layers': filtered_layers[:5]})
 
     return JsonResponse({'layers': filtered_layers})
+
+
+#subscribe to be recording an gpx file in real time, like access location and clock and then record, subscribe to like a socket or something
+def recordeGPX(request):
+    recordedGPX = []
+    #recording the gpx file
+    timezone.now()
+    # current location
+    currentLocation = []
+    try:
+        request.POST['location']
+    except:
+        print("no location")
+    else:
+        currentLocation = request.POST['location']
+        print(currentLocation)
+    # current time
+    currentTime = []
+    try:
+        request.POST['time']
+    except:
+        print("no time")
+    else:
+        currentTime = request.POST['time']
+        print(currentTime)
+
+    recordedGPX.append(currentLocation)
+    recordedGPX.append(currentTime)
+    return JsonResponse({'recordedGPX': recordedGPX})
+
 

@@ -1,0 +1,5 @@
+Django==5.0.2
+gpxpy==1.6.2
+polyline==2.0.2
+Requests==2.31.0
+stravalib==1.6
